@@ -3,11 +3,6 @@ Python script to perform a HIEv search api call (based on given query parameters
 files metadata
 
 Author: Gerard Devine
-Date: December 2015
-
-
-- Note: A valid HIEv API key is required  
-
 '''
 
 import os
@@ -18,48 +13,31 @@ from datetime import datetime
 
 
 # -- Set up global values
-request_url = 'https://hiev.uws.edu.au/data_files/api_search'
-# Either set your api key via an environment variable (recommended) or add directly below 
 api_token = os.environ['HIEV_API_KEY']
-
-
-# -- Set up parameters in which to do the HIEv API search call (see dc21 github wiki for full list of choices available)
-filenames = '^FACE_R[1-6]_T1_Rain_[0-9]{8}.dat$'
-experiment_ids = [21]
-
+search_url = 'https://ic2-dc21-staging-vm.intersect.org.au/data_files/api_search'
+update_url = 'https://ic2-dc21-staging-vm.intersect.org.au/data_files/api_update?auth_token='+api_token    
 
 # -- As a sanity check, make sure the number of files found matches what was expected (via the HIEv fontend) before proceeding
 numfiles_expected = 106
 
-
-# --Open log file for writing and append date/time stamp into file for a new entry
-logfile = 'log.txt'
-log = open(os.path.join(os.path.dirname(__file__), logfile), 'a')
-log.write('\n----------------------------------------------- \n')
-log.write('------------  '+datetime.now().strftime('%Y-%m-%d %H:%M:%S')+'  ------------ \n')
-log.write('----------------------------------------------- \n')
-
-
-# -- Set up the http request and handle the returned response
+# -- Set up the http search request and handle the returned response
 request_headers = {'Content-Type' : 'application/json; charset=UTF-8', 'X-Accept': 'application/json'}
 request_data = json.dumps({'auth_token'  : api_token, 
-                           'experiments' : experiment_ids, 
-			               'filename'    : filenames,
+                           'experiments' : [21], 
+			               'filename'    : '^FACE_R[1-6]_T1_Rain_[0-9]{8}.dat$',
 # 			               'upload_from_date'   : '2015-11-16'
-			   })
-request  = urllib2.Request(request_url, request_data, request_headers)
+			              })
+request  = urllib2.Request(search_url, request_data, request_headers)
 response = urllib2.urlopen(request)
 js = json.load(response)
 
-8
-log.write(' Number of search results returned = %s \n' %len(js))
+
 # If there are returned results then proceed to update
 if len(js):
     assert (len(js) == numfiles_expected), "Number of files found did not match expected"
-    # set the update url
-    update_url = 'https://hiev.uws.edu.au/data_files/api_update?auth_token='+api_token	
     # --For each entry returned pass the file id to the update API as well as the updated metadata
     for entry in js:
+        # Pick and choose which fields need to be edited
         payload = {
 	    'file_id': entry['file_id'],
 	    # 'id': 'manual ID',
@@ -71,7 +49,7 @@ if len(js):
 	    # 'title': "An second API updated Title for this package",
 	    # 'grant_numbers': '"updated2_labelname_1","updated2_labelname_2"',
 	    # 'related_websites': '"http://www.bbc.co.uk","http://intersect.org.au/"',
-        'parent_filenames': ["FACE_MD_RAIN.csv"],
+        # 'parent_filenames': ["FACE_MD_RAIN.csv"],
 	    # 'access': 'Private',
 	    # 'access_to_all_institutional_users':False,
 	    # 'access_to_user_groups':True,
@@ -83,12 +61,7 @@ if len(js):
 	}
         # Update current file with the new file metadata
         r = requests.post(update_url, data=payload)
- 
-    log.write('-- Complete \n')
+        
+        print 'File successfully updated in HIEv'
 else:
-    log.write('No files matched the search params \n')
-    log.write('\n')
-    log.write('\n')
-
-# --Close log file
-log.close()
+    print 'ERROR - There was a problem editing the file in HIEv'
