@@ -20,8 +20,7 @@ from datetime import datetime
 # -- Set up global values
 request_url = 'https://hiev.uws.edu.au/data_files/api_search'
 # Either set your api key via an environment variable (recommended) or add directly below 
-# api_token = os.environ['HIEV_API_KEY']
-api_token = '8knbLZNqjAf762KMAhXP'
+api_token = os.environ['HIEV_API_KEY']
 
 
 # -- Set up parameters in which to do the HIEv API search call (see dc21 github wiki for full list of choices available)
